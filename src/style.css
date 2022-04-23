@@ -1,5 +1,5 @@
 :root {
-  --clr-primary: rgb(54, 112, 199);
+  --clr-primary: #219ebc;
   --clr-light: #f4f4f4;
   --clr-dark: #333;
   --clr-warning: rgb(99, 36, 36);
@@ -33,13 +33,13 @@ header {
 
 /* MAIN */
 
-main {
-  display: flex;
-  justify-content: center;
-}
-
+main,
 form {
   display: flex;
+}
+
+main {
+  margin: 20px 5vw;
 }
 
 .btn {
@@ -58,7 +58,7 @@ form {
 }
 
 .btn.create:hover {
-  transform: rotate(90deg) scale(1.2);
+  transform: scale(1.3);
 }
 
 .btn.delete {
@@ -94,7 +94,7 @@ form {
 
 .new.list {
   font-size: 1.1rem;
-  width: 200px;
+  width: 150px;
 }
 
 .all-tasks {
