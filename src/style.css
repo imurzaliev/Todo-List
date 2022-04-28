@@ -22,6 +22,10 @@ body {
   font-size: 1.4rem;
   background-color: var(--clr-primary);
   color: var(--clr-light);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 /*  HEADER */
@@ -39,7 +43,7 @@ form {
 }
 
 main {
-  margin: 20px 5vw;
+  margin: 5vw;
 }
 
 .btn {
@@ -240,9 +244,6 @@ main {
 /* FOOTER */
 
 footer {
-  position: absolute;
-  bottom: 0;
-  left: 0;
   display: flex;
   align-items: center;
   justify-content: center;
