@@ -1,3 +1,5 @@
+import { compareAsc, toDate, format, parseISO } from "date-fns";
+
 const listContainer = document.querySelector("[data-lists]");
 const newListForm = document.querySelector("[data-new-list-form]");
 const newListInput = document.querySelector("[data-new-list-input]");
@@ -11,6 +13,7 @@ const tasksContainer = document.querySelector("[data-tasks]");
 const taskTemplate = document.getElementById("task-template");
 const newTaskForm = document.querySelector("[data-new-task-form]");
 const newTaskInput = document.querySelector("[data-new-task-input]");
+const newTaskDate = document.querySelector("[data-new-task-date-input]");
 const clearCompleteTasksButton = document.querySelector(
   "[data-clear-complete-tasks-button]"
 );
@@ -29,10 +32,8 @@ listContainer.addEventListener("click", (e) => {
 
 tasksContainer.addEventListener("click", (e) => {
   if (e.target.tagName.toLowerCase() === "input") {
-    const selectedList = lists.find((list) => list.id === selectedListId);
-    const selectedTask = selectedList.tasks.find(
-      (task) => task.id === e.target.id
-    );
+    const selectedList = selectElem(lists, selectedListId);
+    const selectedTask = selectElem(selectedList.tasks, e.target.id);
     selectedTask.complete = e.target.checked;
     save();
     renderTaskCount(selectedList);
@@ -40,21 +41,30 @@ tasksContainer.addEventListener("click", (e) => {
 });
 
 clearCompleteTasksButton.addEventListener("click", (e) => {
-  const selectedList = lists.find((list) => list.id === selectedListId);
-  selectedList.tasks = selectedList.tasks.filter((task) => !task.complete);
+  const selectedList = selectElem(lists, selectedListId);
+  const allTasksInSelectedList = selectedList.tasks;
+  selectedList.tasks = everythingNotCompleted(allTasksInSelectedList);
   saveAndRender();
 });
 
+function everythingNotCompleted(data) {
+  return data.filter((x) => !x.complete);
+}
+
 deleteListButton.addEventListener("click", (e) => {
-  lists = lists.filter((list) => list.id !== selectedListId);
+  lists = everythingNotSelected(lists, selectedListId);
   selectedListId = null;
   saveAndRender();
 });
 
+function everythingNotSelected(data, selectedElem) {
+  return data.filter((x) => x.id !== selectedElem);
+}
+
 newListForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const listName = newListInput.value;
-  if (listName == null || listName === "") return;
+  if (isEmptyOrSpaces(listName)) return;
   const list = createList(listName);
   newListInput.value = null;
   lists.push(list);
@@ -64,28 +74,47 @@ newListForm.addEventListener("submit", (e) => {
 newTaskForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const taskName = newTaskInput.value;
-  if (taskName == null || taskName === "") return;
-  const task = createTask(taskName);
+  const taskDate = processDate(newTaskDate.value);
+  if (isEmptyOrSpaces(taskName)) return;
+  const task = createTask(taskName, taskDate);
   newTaskInput.value = null;
-  const selectedList = lists.find((list) => list.id === selectedListId);
+  newTaskDate.value = null;
+  const selectedList = selectElem(lists, selectedListId);
   selectedList.tasks.push(task);
-
   saveAndRender();
 });
 
+function processDate(date) {
+  date = formatDate(date);
+  return date === undefined ? " " : date;
+}
+
+function formatDate(date) {
+  return format(parseISO(date), "MM/dd/yyyy");
+}
+
+function isEmptyOrSpaces(str) {
+  return str === null || str.match(/^ *$/) !== null;
+}
+
+function generateId() {
+  return Date.now().toString();
+}
+
 function createList(name) {
   return {
-    id: Date.now().toString(),
-    name: name,
+    id: generateId(),
+    name,
     tasks: [],
   };
 }
 
-function createTask(name) {
+function createTask(name, date) {
   return {
-    id: Date.now().toString(),
-    name: name,
+    id: generateId(),
+    name,
     complete: false,
+    date,
   };
 }
 
@@ -103,7 +132,7 @@ function render() {
   clearElement(listContainer);
   renderLists();
 
-  const selectedList = lists.find((list) => list.id === selectedListId);
+  const selectedList = selectElem(lists, selectedListId);
   if (selectedListId == null) {
     listDisplayContainer.style.display = "none";
   } else {
@@ -115,6 +144,10 @@ function render() {
   }
 }
 
+function selectElem(data, selectedId) {
+  return data.find((x) => x.id === selectedId);
+}
+
 function renderTasks(selectedList) {
   selectedList.tasks.forEach((task) => {
     const taskElement = document.importNode(taskTemplate.content, true);
@@ -122,18 +155,27 @@ function renderTasks(selectedList) {
     checkbox.id = task.id;
     checkbox.checked = task.complete;
     const label = taskElement.querySelector("label");
+    const taskName = taskElement.getElementById("task");
+    const taskDate = taskElement.getElementById("date");
     label.htmlFor = task.id;
-    label.append(task.name);
+    taskName.append(task.name);
+    taskDate.append(task.date);
     tasksContainer.appendChild(taskElement);
   });
 }
 
 function renderTaskCount(selectedList) {
-  const incompleteTasksCount = selectedList.tasks.filter(
-    (task) => !task.complete
-  ).length;
-  const taskString = incompleteTasksCount === 1 ? "task" : "tasks";
+  const incompleteTasksCount = taskCount(selectedList.tasks);
+  const taskString = taskCountGrammar(incompleteTasksCount);
   listCountElement.textContent = `${incompleteTasksCount} ${taskString} remaining`;
+}
+
+function taskCountGrammar(num) {
+  return num === 1 ? "task" : "tasks";
+}
+
+function taskCount(data) {
+  return data.filter((x) => !x.complete).length;
 }
 
 function renderLists() {
@@ -142,11 +184,15 @@ function renderLists() {
     listElement.dataset.listId = list.id;
     listElement.classList.add("list-name");
     listElement.textContent = list.name;
-    if (list.id === selectedListId) {
-      listElement.classList.add("active-list");
-    }
+    highlightSelectedList(list.id, selectedListId, listElement);
     listContainer.appendChild(listElement);
   });
+}
+
+function highlightSelectedList(id, elemId, elem) {
+  if (id === elemId) {
+    return elem.classList.add("active-list");
+  }
 }
 
 function clearElement(element) {
