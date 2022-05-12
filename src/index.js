@@ -1,4 +1,6 @@
-import { compareAsc, toDate, format, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
+
+import { listsTemplate } from "./template";
 
 const listContainer = document.querySelector("[data-lists]");
 const newListForm = document.querySelector("[data-new-list-form]");
@@ -20,18 +22,27 @@ const clearCompleteTasksButton = document.querySelector(
 
 const LOCAL_STORAGE_LIST_KEY = "task.lists";
 const LOCAL_STORAGE_SELECTED_LIST_ID_KEY = "task.selectedListId";
-let lists = JSON.parse(localStorage.getItem(LOCAL_STORAGE_LIST_KEY)) || [];
+let lists =
+  JSON.parse(localStorage.getItem(LOCAL_STORAGE_LIST_KEY)) || listsTemplate;
 let selectedListId = localStorage.getItem(LOCAL_STORAGE_SELECTED_LIST_ID_KEY);
 
 listContainer.addEventListener("click", (e) => {
-  if (e.target.tagName.toLowerCase() === "li") {
-    selectedListId = e.target.dataset.listId;
-    saveAndRender();
-  }
+  setSelectedListId(e, "li", e.target.dataset.listId);
 });
 
+function setSelectedListId(e, elem, id) {
+  if (checkElem(e, elem)) {
+    selectedListId = id;
+    saveAndRender();
+  }
+}
+
+function checkElem(e, elem) {
+  return e.target.tagName.toLowerCase() === elem;
+}
+
 tasksContainer.addEventListener("click", (e) => {
-  if (e.target.tagName.toLowerCase() === "input") {
+  if (checkElem(e, "input")) {
     const selectedList = selectElem(lists, selectedListId);
     const selectedTask = selectElem(selectedList.tasks, e.target.id);
     selectedTask.complete = e.target.checked;
@@ -43,21 +54,21 @@ tasksContainer.addEventListener("click", (e) => {
 clearCompleteTasksButton.addEventListener("click", (e) => {
   const selectedList = selectElem(lists, selectedListId);
   const allTasksInSelectedList = selectedList.tasks;
-  selectedList.tasks = everythingNotCompleted(allTasksInSelectedList);
+  selectedList.tasks = getEverythingNotCompleted(allTasksInSelectedList);
   saveAndRender();
 });
 
-function everythingNotCompleted(data) {
+function getEverythingNotCompleted(data) {
   return data.filter((x) => !x.complete);
 }
 
 deleteListButton.addEventListener("click", (e) => {
-  lists = everythingNotSelected(lists, selectedListId);
+  lists = getEverythingNotSelected(lists, selectedListId);
   selectedListId = null;
   saveAndRender();
 });
 
-function everythingNotSelected(data, selectedElem) {
+function getEverythingNotSelected(data, selectedElem) {
   return data.filter((x) => x.id !== selectedElem);
 }
 
@@ -75,6 +86,7 @@ newTaskForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const taskName = newTaskInput.value;
   const taskDate = processDate(newTaskDate.value);
+
   if (isEmptyOrSpaces(taskName)) return;
   const task = createTask(taskName, taskDate);
   newTaskInput.value = null;
@@ -85,8 +97,7 @@ newTaskForm.addEventListener("submit", (e) => {
 });
 
 function processDate(date) {
-  date = formatDate(date);
-  return date === undefined ? " " : date;
+  return date === "" ? " " : formatDate(date);
 }
 
 function formatDate(date) {
